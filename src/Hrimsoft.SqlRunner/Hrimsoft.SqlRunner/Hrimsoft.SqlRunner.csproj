@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <TargetFramework>netcoreapp3.1</TargetFramework>
+        <AssemblyName>sql-runner</AssemblyName>
+        <UserSecretsId>56FDD8B1-5DE2-4083-962A-65CEFC4F9A7A</UserSecretsId>
+    </PropertyGroup>
+    <ItemGroup>
+        <PackageReference Include="CommandLineParser" Version="2.8.0" />
+        <PackageReference Include="Hrimsoft.Core" Version="0.0.1" />
+        <PackageReference Include="Microsoft.Extensions.Configuration" Version="3.1.8" />
+        <PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="3.1.8" />
+        <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="3.1.8" />
+        <PackageReference Include="Microsoft.Extensions.Configuration.UserSecrets" Version="3.1.8" />
+        <PackageReference Include="Npgsql" Version="4.1.5" />
+    </ItemGroup>
+    <ItemGroup>
+      <None Update="appsettings.json">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </None>
+    </ItemGroup>
+</Project>
