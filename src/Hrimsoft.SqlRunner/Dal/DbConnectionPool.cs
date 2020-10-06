@@ -48,6 +48,7 @@ namespace Hrimsoft.SqlRunner
 
         public void Dispose()
         {
+            // TODO: Если есть закрытые, т.е. ранее успешно закомитеные, то накатить соответствующий down скрипт
             foreach (var (database, (connection, transaction)) in _connectionPool) {
                 if (!transaction.IsCompleted)
                     transaction.Rollback();
