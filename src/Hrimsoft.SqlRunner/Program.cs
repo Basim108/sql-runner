@@ -4,6 +4,9 @@ using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using CommandLine;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Hosting;
+using NLog;
 
 namespace Hrimsoft.SqlRunner
 {
@@ -11,52 +14,52 @@ namespace Hrimsoft.SqlRunner
     {
         private static CancellationTokenSource _stoppingCts;
 
-        static void Main(string[] args)
+        static int Main(string[] args)
         {
+            var logger = LogManager.LoadConfiguration("nlog.config")
+                                   .GetLogger(nameof(Main));
             try {
                 _stoppingCts = new CancellationTokenSource();
 
                 AppDomain.CurrentDomain.ProcessExit += CurrentDomain_ProcessExit;
 
-                Parser.Default
+                var task = Parser.Default
                       .ParseArguments<ConsoleArguments>(args)
-                      .WithParsedAsync(RunWithOptionsAsync);
+                      .WithParsedAsync(opt => RunWithOptionsAsync(opt, logger));
+                task.Wait();
             }
             catch (Exception ex) {
-                ProcessError(ex);
+                logger.Error(ex);
+                return -1;
             }
+            finally {
+                LogManager.Shutdown();
+            }
+            return 0;
         }
 
-        private static Task RunWithOptionsAsync(ConsoleArguments consoleArguments)
+        private static async Task RunWithOptionsAsync(ConsoleArguments consoleArguments, ILogger logger)
         {
             try {
-                var appConfig      = new AppConfiguration(consoleArguments);
-                var scriptManager  = new ScriptManager(appConfig);
-                var scriptInfoList = scriptManager.GetScripts();
+                consoleArguments.CalculateDefaults();
+                await using var connectionPool = new PostgreSqlConnectionPool();
 
-                using var scriptRunner = new SqlScriptRunner(appConfig.CurrentEnvironment);
-                foreach (var script in scriptInfoList) {
-                    Console.WriteLine($"{DateTime.Now:o}: Running {Path.GetFileName(script.ScriptPath)}");
-                    var task = scriptRunner.ExecuteAsync(script, _stoppingCts.Token);
-                    task.Wait();
-                    Console.WriteLine($"{DateTime.Now:o}: Finished {Path.GetFileName(script.ScriptPath)}");
-                    if (task.IsFaulted)
-                        throw task.Exception.InnerException;
-                }
-                scriptRunner.CommitAsync(_stoppingCts.Token).Wait(_stoppingCts.Token);
+                var appConfig        = new AppConfiguration(consoleArguments);
+                var scriptsAccessor  = new SqlScriptsFileAccessor(appConfig);
+                var scriptRunner     = new PostgreSqlScriptRunner(appConfig.CurrentEnvironment, connectionPool);
+                var executionManager = new ExecutionManager(scriptsAccessor, connectionPool, scriptRunner);
+
+                var success = false;
+                if (consoleArguments.Up)
+                    success = await executionManager.RunUpScriptsAsync(_stoppingCts.Token);
+                else
+                    success = await executionManager.RunDownScriptsAsync(_stoppingCts.Token);
+                if (!success)
+                    throw new ApplicationException("Script running failed");
             }
             catch (Exception ex) {
-                ProcessError(ex);
+                logger.Error(ex);
             }
-            return Task.CompletedTask;
-        }
-
-        private static void ProcessError(Exception ex)
-        {
-            var defaultColor = Console.ForegroundColor;
-            Console.ForegroundColor = ConsoleColor.Red;
-            Console.WriteLine($"{DateTime.Now:hh:mm:ss} {ex}");
-            Console.ForegroundColor = defaultColor;
         }
 
         private static void CurrentDomain_ProcessExit(object? sender, EventArgs e)

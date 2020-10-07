@@ -38,5 +38,29 @@ namespace Hrimsoft.SqlRunner
                 return _currentEnvironment;
             }
         }
+
+        private string _upFolderName;
+        public string UpFolderName {
+            get {
+                if (string.IsNullOrWhiteSpace(_upFolderName)) {
+                    _upFolderName = _appSettings[nameof(UpFolderName)];
+                    if (string.IsNullOrWhiteSpace(_upFolderName))
+                        _upFolderName = "Up";
+                }
+                return _upFolderName;
+            }
+        }
+        
+        private string _downFolderName;
+        public string DownFolderName {
+            get {
+                if (string.IsNullOrWhiteSpace(_downFolderName)) {
+                    _downFolderName = _appSettings[nameof(DownFolderName)];
+                    if (string.IsNullOrWhiteSpace(_downFolderName))
+                        _downFolderName = "Down";
+                }
+                return _downFolderName;
+            }
+        }
     }
 }

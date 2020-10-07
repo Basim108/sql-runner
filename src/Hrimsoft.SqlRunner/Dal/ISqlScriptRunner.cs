@@ -8,5 +8,7 @@ namespace Hrimsoft.SqlRunner
     {
         /// <summary> Execute sql script </summary>
         Task ExecuteAsync(ScriptInfo scriptInfo, CancellationToken cancellation);
+
+        Task ExecuteAsync(string scriptPath, ExecutionDataContext context, CancellationToken cancellation);
     }
 }
